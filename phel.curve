@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!DOCTYPE curve>
+
+<curve type="parametric" name="curve1" npoints="15" tmin="0" tmax="3.74159">
+	<x>2*cos(t)</x>
+	<y>2*sin(t)</y>
+	<z>t</z>
+</curve>

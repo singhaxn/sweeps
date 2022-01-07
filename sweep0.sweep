@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE sweep>
+
+<sweep name="hello" rotate="1">
+	<path>
+		<curve type="parametric" name="curve1" npoints="15" tmin="0" tmax="3.74159">
+			<x>2*cos(t)</x>
+			<y>2*sin(t)</y>
+			<z>t</z>
+		</curve>
+	</path>
+	<curvelist>
+		<curve type="parametric" name="curve1" npoints="20" tmin="0" tmax="6.28319">
+			<x>2+0.3*cos(t)</x>
+			<y>0</y>
+			<z>0.3*sin(t)</z>
+		</curve>
+	</curvelist>
+<sweep>

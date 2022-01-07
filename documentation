@@ -1,0 +1,21 @@
+Group No. 2
+Group Members :- 
+             1. Atre Avadhut.             (0303).
+			 2. Chougule Sandeep.         (0308).
+			 3. Kale Pramod.              (0316).
+			 4. Magdum Sachin.            (0322).
+	
+	
+Content :-
+			Our project creates various objects by creating different surfaces
+			
+Keyboard Facilities provided:-
+
+	X Y Z : Rotations about respective Axes (shift+key reverses dir).
+	L     : Toggle Lights.
+	S     : Toggle Sweept Volume And Parent Curves.
+	R     : Toggle Surface Normals Direction.
+	N     : NextSweep.
+	P     : PrevSweep.
+	ESC   : Quit.
+	 

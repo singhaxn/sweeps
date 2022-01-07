@@ -1,0 +1,525 @@
+#include <GL/gl.h>
+#include <GL/glut.h>
+//#include <GL/glu.h>
+#include <stdio.h>
+#include <math.h>
+
+#include "FCurves.cpp"
+
+#define PI 3.141592654
+#define TOTAL_SWEEPS 11
+
+
+int lights=1;
+int CurveIndex=0;
+bool ShowCurve =0;
+bool ShowColor = 0;
+bool NormalsDir=0;
+double x_Angle = 0,y_Angle = 0,z_Angle=0;
+double x_translate=0.0,y_translate=0.0;
+double NEAR_Z=1.0, FAR_Z=100.0;
+
+/*Bezier along Bezier Surfaces*/
+XYZ bSurfPts[4] = {
+	{ 0.0, -2.0, 0.0},
+	{ 2.0, 2.0, 0.0},
+    	{ -2.0, 2.0, 0.0},
+	{ 0.0, -2.0, 0.0}
+};
+
+const double add = 0.0;
+XYZ bPathPts[4] = {
+	{ 0.0+add, 0.0, 0.0},
+	{ 0.0+add, 0.0, -4.0},
+	{ -4.0+add, 0.0, -4.0},
+	{ -4.0+add, 0.0, 0.0}
+};
+BazierCurve B(bSurfPts,4,90);
+BazierCurve B1(bPathPts,4,40);
+
+/*********************************/
+
+/* Helix Telephone Wire */
+XYZ centre  = {2,0,0};
+Circle C(centre,0.2,30);//Not at centre
+
+XYZ centrenew  = {1,2.5,0};
+Circle Cnew(centrenew,0.2,30);//Not at centre
+
+Helix H(2,4,8,1000);
+
+
+/* Circular Cone Helix */
+XYZ origin  = {0,0,0};
+Circle C1(origin,0.1,30);
+HelixCone HC(2,4,8,1000);
+
+
+/*
+//Rectangular Helix
+const double sub=0.1;
+XYZ Rc1Pts[4] = {
+	{ 2.0-sub, -sub, 0.0},
+	{ 2.0-sub,  sub, 0.0},
+        { 2.0+sub,  sub, 0.0},
+	{ 2.0+sub, -sub, 0.0}
+};
+Rectangle R1(Rc1Pts);
+*/
+
+
+/*Cylinder And Box */
+
+XYZ RcPts[4] = {
+	{ 0.5, -0.5, 0.0},
+	{ -0.5, -0.5, 0.0},
+	{ -0.5, 0.5, 0.0},
+	{ 0.5, 0.5, 0.0}
+};
+
+XYZ start = {0,0,0},end = {0,0,-4.0};
+
+Circle Cyl(origin,0.4);//Origin
+Rectangle R(RcPts);//Origin
+Line L(start,end,2);
+
+XYZ end2 = {-0.15,0,0.4};
+Line L1(start,end2,2);
+
+/*Cofee Pot*/
+#define CofeeRadius 2
+#define CofeeHeight 4
+#define DestortX 1
+XYZ bCofee[4] = {
+	{ CofeeRadius, 0.0, 0.0},
+	{ CofeeRadius+DestortX, 1, 0},
+	{ CofeeRadius-DestortX, CofeeHeight-1, 0},
+	{ CofeeRadius, CofeeHeight, 0.0}
+};
+BazierCurve BCofee(bCofee,4,50);
+Circle CCofee(origin,2,90);
+
+
+
+/**************************************Sandy********************/
+
+Flower F(1.5,3,12,20);
+XYZ L2start = {1.5,.5,1.0},L2end = {1.5,-0.5,-1.0};
+Line L22(L2start*2.3,L2end*2.3,10);
+
+XYZ Lstart = {1.5,.5,1},Lend = {1.5,-.50,-1.0};
+Line L11(Lstart,Lend,10);
+xyz cpt={0.1,0.1,0.5};
+Line L11C(centrenew,centrenew+cpt,2);
+Flower F1(0.6,8,5,20);
+
+
+
+
+Sweep *S;
+
+void display(void){
+    	int i;
+	XYZ *p;
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glColor3f(1, 0.0, 1);
+
+   	glPushMatrix ();
+  			//glTranslatef(x_translate, y_translate, z_translate-5);
+         glTranslatef(x_translate, y_translate, 0.0);
+			glRotatef(x_Angle, 1.0, 0.0, 0.0);
+  			glRotatef(y_Angle, 0.0, 1.0, 0.0);
+  			glRotatef(z_Angle, 0.0, 0.0, 1.0);
+			//glTranslatef(x_translate, y_translate, z_translate);
+	//Axes
+	glBegin(GL_LINES);
+
+
+		glColor3f(1.0, 1.0, 1.0);
+		glVertex3f(-5,0,0);
+		glVertex3f(0,0,0);
+
+		glColor3f(1.0, 0.0, 0.0);
+		glVertex3f(0,0,0);
+		glVertex3f(5,0,0);
+
+
+
+		glColor3f(1.0, 1.0, 1.0);
+		glVertex3f(0,-5,0);
+		glVertex3f(0,0,0);
+
+
+		glColor3f(0.0, 1.0, 0.0);
+		glVertex3f(0,0,0);
+		glVertex3f(0,5,0);
+
+
+
+		glColor3f(1.0, 1.0, 1.0);
+		glVertex3f(0,0,-5);
+		glVertex3f(0,0,0);
+
+		glColor3f(0.0, 0.0, 1.0);
+		glVertex3f(0,0,0);
+         	glVertex3f(0,0,5);
+
+   glEnd();
+
+
+/*
+	//Rotation COde
+	glColor3f(0, 1.0, 0);
+
+	int cnt = 5;
+	double angle=6.283/cnt;
+
+	for(i=0;i<cnt;i++){
+		//C.Rotate(angle*i,1,0,0);
+
+		C.Translate(0.0,0.0,i);
+		//C.FixCurve();
+			glBegin(GL_LINE_STRIP);
+		   		while((p = C.Iterator()) != NULL){
+					glVertex3f(p->x,p->y,p->z);
+
+				}
+		    	glEnd();
+		C.Restore();
+	}
+	return;
+
+*/
+	if(ShowCurve){
+		glColor3f(0,0,1.0);
+			glBegin(GL_LINE_STRIP);
+			while((p = ((S+CurveIndex)->Path)->Iterator()) != NULL){
+				glVertex3f(p->x,p->y,p->z);
+
+			}
+    		glEnd();
+
+		glColor3f(1.0,0 , 0);
+			glBegin(GL_LINE_STRIP);
+	     		while((p = (S+CurveIndex)->Surface->Iterator()) != NULL){
+				glVertex3f(p->x,p->y,p->z);
+			}
+	    		glEnd();
+		glPopMatrix ();
+    		glutSwapBuffers();
+    		glFlush();
+		return;
+	}
+
+	   XYZ Pt[4];
+	   int j=0;
+	   glColor3f(0.5,0.5,1.0);
+	   Vector tt,n,sub1,sub2;
+//	   Vector vcolr,vpos;
+		if(lights)
+	   		while((S+CurveIndex)->MeshPoints(Pt)){
+				glBegin(GL_POLYGON);
+					sub1=Pt[0]-Pt[1];
+					sub2=Pt[2]-Pt[0];
+					n=sub1*sub2;
+					n.Normalize();
+					if(NormalsDir)
+						n=-n;
+					for(i=0;i<4;i++){
+                  //Normal Assignments
+						glNormal3f(n.x,n.y,n.z);
+                  //Color Calculations
+						if(ShowColor) glColor3f(fabsf(n.x),fabsf(n.y),fabsf(n.z));
+						glVertex3f(Pt[i].x,Pt[i].y,Pt[i].z);
+					}
+				glEnd();
+			}
+		else
+	   		while((S+CurveIndex)->MeshPoints(Pt)){		
+				glBegin(GL_LINE_STRIP);
+					for(i=0;i<3;i++){
+						glVertex3f(Pt[i].x,Pt[i].y,Pt[i].z);
+						glVertex3f(Pt[i+1].x,Pt[i+1].y,Pt[i+1].z);
+					}
+					glVertex3f(Pt[3].x,Pt[3].y,Pt[3].z);
+					glVertex3f(Pt[0].x,Pt[0].y,Pt[0].z);
+				glEnd();
+			}
+		
+    glPopMatrix ();
+    glutSwapBuffers();
+    glFlush();
+}
+void mouse(int button,int state,int x,int y){
+	static int whichPoint = 0;
+	int i;
+
+
+}
+
+void myReshape(GLsizei w, GLsizei h){
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    if (w <= h)
+        glOrtho(-5.0, 5.0, -5.0*(GLfloat)h/(GLfloat)w,
+            5.0*(GLfloat)h/(GLfloat)w, -5.0, 5.0);
+    else
+        glOrtho(-5.0*(GLfloat)w/(GLfloat)h,
+            5.0*(GLfloat)w/(GLfloat)h, -5.0, 5.0, -5.0, 5.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+void initlights(void){
+	GLfloat light1_position[] = { -5.0, 0.0, 0.0, 1.0 };
+   	GLfloat light2_position[] = { 5.0, 0.0, 0.0, 1.0 };
+	GLfloat light3_position[] = { 0.0, 5.0, 0.0, 1.0 };
+	GLfloat light4_position[] = { 0.0, -5.0, 0.0, 1.0 };
+
+	GLfloat light5_position[] = { -5.0, -5.0, 0.0, 1.0 };
+   	GLfloat light6_position[] = { 5.0, -5.0, 0.0, 1.0 };
+	GLfloat light7_position[] = { 0.0, -5.0, 5.0, 1.0 };
+	GLfloat light8_position[] = { 0.0, -5.0, -5.0, 1.0 };
+
+
+	GLfloat mat_specular[] = { 0.0,0.0, 0.0, 0.0 };
+   	GLfloat mat_shininess[] = { 50.0 };
+	GLfloat diffuseMaterial[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+
+
+   	glClearColor (0.0, 0.0, 0.0, 0.0);
+
+	glShadeModel(GL_SMOOTH);
+	glPolygonMode(GL_FRONT,GL_FILL);
+	glPolygonMode(GL_BACK,GL_FILL);
+
+	/* Start of Lighting initialisations */
+	glEnable(GL_COLOR_MATERIAL);
+	//glEnable(GL_NORMALIZE);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_DEPTH_TEST);
+
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialf(GL_FRONT, GL_SHININESS, 60.0);
+	
+	glLightfv(GL_LIGHT0, GL_POSITION, light1_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, light2_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, light3_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, light4_position);
+	
+	glLightfv(GL_LIGHT0, GL_POSITION, light5_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, light6_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, light7_position);
+	glLightfv(GL_LIGHT0, GL_POSITION, light8_position);	
+	
+	glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+}
+
+void setProjection(void){
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  //gluPerspective(30.0, 1.0,NEAR_Z, FAR_Z);
+  glMatrixMode(GL_MODELVIEW);
+}
+
+void myinit(void){
+	glClearColor (0.0, 0.0, 0.0, 1.0);
+	setProjection();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glEnable(GL_DEPTH_TEST);
+	if(lights)
+		initlights();
+	glutSwapBuffers();
+}
+
+void keyboard (unsigned char key, int x, int y)
+{
+   int const cnt = 90;
+   double const TwoPI = 360;
+   double incr=1.0*TwoPI/cnt;
+   switch (key) {
+      case 'x':
+         x_Angle = fmod((x_Angle + incr),TwoPI);
+         glutPostRedisplay();
+         break;
+      case 'X':
+         x_Angle = fmod((x_Angle + TwoPI - incr),TwoPI);
+         glutPostRedisplay();
+         break;
+      case 'y':
+         y_Angle = fmod((y_Angle + incr),TwoPI);
+         glutPostRedisplay();
+         break;
+      case 'Y':
+         y_Angle = fmod((y_Angle + TwoPI - incr),TwoPI);
+         glutPostRedisplay();
+         break;
+      case 'z':
+    	 z_Angle = fmod((z_Angle + incr),TwoPI);
+         glutPostRedisplay();
+         break;
+      case 'Z':
+         z_Angle = fmod((z_Angle + TwoPI - incr),TwoPI);
+         glutPostRedisplay();
+         break;
+      case 'l': case 'L':
+			lights^=1;
+         if(lights){
+         	initlights();
+	  }
+          else{
+         	 glDisable(GL_LIGHTING);
+		 glDisable(GL_LIGHT0);
+          }
+         glutPostRedisplay();
+
+         break;
+	 case 'n': case 'N':
+	 		CurveIndex = (CurveIndex+1)%TOTAL_SWEEPS;
+			glutPostRedisplay();
+	 	;break;
+	case 'p': case 'P':
+	 		CurveIndex = (CurveIndex+TOTAL_SWEEPS-1)%TOTAL_SWEEPS;
+			glutPostRedisplay();
+	 	;break;
+	case 's': case 'S':
+		ShowCurve ^= 1;
+		if(ShowCurve){
+			lights=0;
+			glDisable(GL_LIGHTING);
+			glDisable(GL_LIGHT0);
+		}else{
+			lights=1;
+			initlights();
+		}
+		glutPostRedisplay();
+		break;
+	case 'r': case 'R':
+		NormalsDir^=1;
+		glutPostRedisplay();
+		break;
+	case 'c': case 'C':
+		ShowColor^=1;
+		glutPostRedisplay();
+		break;
+   case 'j':
+      x_translate = x_translate + 0.1;
+      glutPostRedisplay();
+      break;
+   case 'J':
+      x_translate = x_translate - 0.1;
+      glutPostRedisplay();
+      break;
+   case 'k':
+      y_translate = y_translate + 0.1;
+      glutPostRedisplay();
+      break;
+   case 'K':
+      y_translate = y_translate - 0.1;
+      glutPostRedisplay();
+      break;
+/*
+   case 'm':
+      z_translate = z_translate * 1.5;
+      glutPostRedisplay();
+      break;
+   case 'M':
+      z_translate = z_translate / 1.5;
+      glutPostRedisplay();
+      break;
+*/
+	 case 27:exit(0);
+   }
+}
+
+void printKeyBindings(){
+	system("clear");
+	printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+	printf("\t\t\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~KeyBindings~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	printf("\t\t\t\t X Y Z : Rotations about respective Axes (shift+key reverses dir).\n");
+
+	printf("\n");
+
+	printf("\t\t\t\t L     : Toggle Lights.\n");
+	printf("\t\t\t\t S     : Toggle Sweept Volume And Parent Curves.\n");
+	printf("\t\t\t\t R     : Toggle Surface Normals Direction.\n");
+
+	printf("\n");
+	printf("\t\t\t\t j/J   : Translate(+,-) Across x Axis.\n");
+	printf("\t\t\t\t k/K   : Translate(+,-) Across y Axis.\n");
+//	printf("\t\t\t\t m/M   : Translate(*,/) Across z Axis.\n");
+	printf("\n");
+
+	printf("\t\t\t\t N     : NextSweep.\n");
+	printf("\t\t\t\t P     : PrevSweep.\n");
+	printf("\t\t\t\t ESC   : Quit.\n");
+	printf("\n");
+
+
+
+	printf("\t\t\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+}
+int main(int argc, char** argv)
+{
+	char *fun[3]= {
+		"1+sin(t)",
+		"1.25*(1+cos(t))",
+		"t/(3.141592654)"
+	};
+	Parametric p(fun, 0, PI*2);
+	CCofee.Rotate(-PI/2,1,0,0);
+	CCofee.FixCurve();
+	Cnew.Translate(-centrenew);
+	Cnew.Rotate(-PI/2,1,1,1);
+	Cnew.Translate(centrenew);
+	Cnew.FixCurve();
+	Sweep s[TOTAL_SWEEPS+1]={
+		Sweep(&L11C,&p),
+		Sweep(&p,&L11C),
+		Sweep(&B,&B1),
+		Sweep(&C,&H),
+		Sweep(&C1,&HC),
+
+		Sweep(&Cyl,&L),
+		Sweep(&R,&L),
+		Sweep(&BCofee,&CCofee),
+
+		Sweep(&L11,&F),
+		Sweep(&L22,&F1),
+		Sweep(&F1,&L),
+
+		Sweep(&Cyl,&L),
+//		Sweep(&L22,&L1)
+		//Sweep(&C, &p)
+	};
+
+	S = s;
+	/*BCofee.Translate(-2,0,0);
+	BCofee.FixCurve();
+	*/
+	printKeyBindings();
+
+
+
+	/*B.Translate(1.5,0,0);
+	B.FixCurve();
+	*/
+
+   	glutInit(&argc, argv);
+
+	glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH );//(GLUT_SINGLE | GLUT_RGB);// | GLUT_DEPTH );
+	glutInitWindowSize (500,500);
+	glutInitWindowPosition (0,0);
+	glutCreateWindow (argv[0]);
+	myinit();
+	glutReshapeFunc (myReshape);
+	glutDisplayFunc (display);
+	//glutMouseFunc(mouse);
+	glutKeyboardFunc(keyboard);
+	glutMainLoop();
+}
+

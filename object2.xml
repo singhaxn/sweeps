@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE object>
+
+<object name="object2">
+	<path>
+		<curve type="parametric" name="curve1" npoints="10" tmin="0" tmax="9.42478">
+			<x>2+0.3*cos(t)</x>
+			<y>0.3*sin(t)</y>
+			<z>0</z>
+		</curve>
+	</path>
+	<curvelist>
+		<curve type="lagrange" name="curve1" npoints="40" lagpoints="4">
+			<point>(0.000000, 0.000000, 0.000000)</point>
+			<point>(1.000000, 2.000000, 3.000000)</point>
+			<point>(2.000000, 2.500000, -1.500000)</point>
+			<point>(3.000000, -2.000000, 1.200000)</point>
+		</curve>
+	</curvelist>
+	<path>
+		<curve type="parametric" name="curve1" npoints="40" tmin="0" tmax="12.5664">
+			<x>2*cos(t)</x>
+			<y>2*sin(t)</y>
+			<z>t/(3.141592654*4/4.0)</z>
+		</curve>
+	</path>
+	<curvelist>
+		<curve type="parametric" name="curve1" npoints="10" tmin="0" tmax="9.42478">
+			<x>2+0.3*cos(t)</x>
+			<y>0.3*sin(t)</y>
+			<z>0</z>
+		</curve>
+	</curvelist>
+</object>

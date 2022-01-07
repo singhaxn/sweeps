@@ -1,0 +1,493 @@
+//	XMLHandling.cpp
+
+#ifndef _XML_HANDLING
+#define _XML_HANDLING
+
+#include <expat.h>
+#include <string.h>
+#include <fstream>
+#include <strstream>
+
+#define XML_PARSER_BUF_LEN 1024
+
+//	@@	Place the following functions in appropriate classes
+void Object::saveAs(char *filename)
+{
+	ofstream fout(filename);
+	
+	fout<<"<?xml version=\"1.0\"?>\n";
+	fout<<"<!DOCTYPE object>\n\n";
+	writeXML(fout, 0);
+	
+	fout.close();
+}
+
+void Object::writeXML(ofstream &fout, int indent)
+{
+	cerr<<"\nXML_Object...\n";
+	fout<<"<object name=\""<<name<<"\">\n";
+	for(SweepListNode *stemp=head; stemp!=NULL; stemp=stemp->next)
+		stemp->sweep->writeXML(fout, indent+1);
+	fout<<"</object>\n";
+}
+
+void Sweep::writeXML(ofstream &fout, int indent)
+{
+	cerr<<"\nXML_Sweep...\n";
+	char indentstr[indent+1];
+	
+	memset(indentstr, '\t', indent);
+	indentstr[indent]='\0';
+	
+	fout<<indentstr<<"<path>\n";
+	Path->writeXML(fout, indent+1);
+	fout<<indentstr<<"</path>\n";
+	
+	fout<<indentstr<<"<curvelist>\n";
+/*	for(Curve *ctemp=Surface; ctemp!=NULL; ctemp=ctemp->next)
+		ctemp->writeXML(fout, indent+1);*/
+	Surface->writeXML(fout, indent+1);
+	fout<<indentstr<<"</curvelist>\n";
+}
+
+void Parametric::writeXML(ofstream &fout, int indent)
+{
+	cerr<<"\nXML_Parametric...\n";
+	char indentstr[indent+1];
+	
+	memset(indentstr, '\t', indent);
+	indentstr[indent]='\0';
+	
+	fout<<indentstr<<"<curve type=\"parametric\" name=\""<<name<<"\" npoints=\""
+		<<nPoints<<"\" tmin=\""<<tmin<<"\" tmax=\""<<tmax<<"\">\n";
+	fout<<indentstr<<'\t'<<"<x>"<<sf[0]<<"</x>\n";
+	fout<<indentstr<<'\t'<<"<y>"<<sf[1]<<"</y>\n";
+	fout<<indentstr<<'\t'<<"<z>"<<sf[2]<<"</z>\n";
+	fout<<indentstr<<"</curve>\n";
+}
+
+void Parametric::setProperties(const char **attr)
+{
+	for(int i=0; attr[i]!=NULL; i+=2) {
+		if(!strcmp(attr[i], "name"))
+			name=strdup(attr[i+1]);
+		if(!strcmp(attr[i], "npoints"))
+			nPoints=atoi(attr[i+1]);
+		if(!strcmp(attr[i], "tmin"))
+			tmin=strtod(attr[i+1], NULL);
+		if(!strcmp(attr[i], "tmax"))
+			tmax=strtod(attr[i+1], NULL);
+	}
+}
+
+void Parametric::setExtProperty(int index, const char *buffer)
+{
+	if(index<0 || index>2)
+		return;
+	sf[index]=strdup(buffer);
+	ef[index].parse(sf[index]);
+}
+
+void BazierCurve::writeXML(ofstream &fout, int indent)
+{
+	cerr<<"\nXML_Bezier...\n";
+	char indentstr[indent+1];
+	char point[64];
+	
+	memset(indentstr, '\t', indent);
+	indentstr[indent]='\0';
+	
+	fout<<indentstr<<"<curve type=\"bezier\" name=\""<<name<<"\" npoints=\""<<nPoints<<"\">\n";
+	fout<<indentstr<<'\t'<<"<start>"<<cntrlPoints[0].toString(point)<<"</start>\n";
+	fout<<indentstr<<'\t'<<"<ctrl1>"<<cntrlPoints[1].toString(point)<<"</ctrl1>\n";
+	fout<<indentstr<<'\t'<<"<ctrl2>"<<cntrlPoints[2].toString(point)<<"</ctrl2>\n";
+	fout<<indentstr<<'\t'<<"<end>"<<cntrlPoints[3].toString(point)<<"</end>\n";
+	fout<<indentstr<<"</curve>\n";
+}
+
+void BazierCurve::setProperties(const char **attr)
+{
+	for(int i=0; attr[i]!=NULL; i+=2) {
+		if(!strcmp(attr[i], "name"))
+			name=strdup(attr[i+1]);
+		if(!strcmp(attr[i], "npoints"))
+			nPoints=atoi(attr[i+1]);
+	}
+}
+
+void BazierCurve::setExtProperty(int index, const char *buffer)
+{
+	if(index<0 || index>3)
+		return;
+	cntrlPoints[index].parsePoint(buffer);
+}
+
+void Lagranges::writeXML(ofstream &fout, int indent)
+{
+	cerr<<"\nXML_Lagranges...\n";
+	char indentstr[indent+1];
+	char point[64];
+	
+	memset(indentstr, '\t', indent);
+	indentstr[indent]='\0';
+	
+	fout<<indentstr<<"<curve type=\"lagrange\" name=\""<<name<<"\" npoints=\""<<nPoints<<"\" lagpoints=\""<<nCtrlPoints<<"\">\n";
+//	for(XYZ *pt=first, pt!=NULL; pt=pt->next)
+	for(int i=0; i<nCtrlPoints; i++)
+		fout<<indentstr<<'\t'<<"<point>"<<cntrlPoints[i].toString(point)<<"</point>\n";
+	fout<<indentstr<<"</curve>\n";
+}
+
+void Lagranges::setProperties(const char **attr)
+{
+	for(int i=0; attr[i]!=NULL; i+=2) {
+		if(!strcmp(attr[i], "name"))
+			name=strdup(attr[i+1]);
+		if(!strcmp(attr[i], "npoints"))
+			nPoints=atoi(attr[i+1]);
+		if(!strcmp(attr[i], "lagpoints")) {
+			nCtrlPoints=atoi(attr[i+1]);
+			cntrlPoints=new XYZ[nCtrlPoints];
+		}
+	}
+}
+
+void Lagranges::setExtProperty(int index, const char *buffer)
+{
+	static int cnt=0;
+	
+	cntrlPoints[cnt++].parsePoint(buffer);
+	
+	if(cnt==nCtrlPoints)
+		cnt=0;
+}
+
+/*void addPrimitive(Curve *curve)
+{
+	system("cp conf/primitives.xml conf/primitives.xml~");
+}
+*/
+char *XYZ::toString(char *res) const
+{
+	sprintf(res, "(%lf, %lf, %lf)", x, y, z);
+	return res;
+}
+
+void XYZ::parsePoint(const char *point)
+{
+	sscanf(point, "(%lf, %lf, %lf)", &x, &y, &z);
+}
+
+void Sweep::setFunction(int index, char *fun)
+{
+	if(index<0 || index>2)
+		return;
+	
+	f[index]=strdup(fun);
+	ef[index].parse(f[index]);
+}
+
+void Sweep::setParametricFunction(char *buffer)
+{
+	s=strdup(buffer);
+	es.parse(s);
+}
+
+class XMLFileParser {
+	protected:
+		static bool parsing;
+		static unsigned int pos;
+		static char buffer[XML_PARSER_BUF_LEN];
+	
+	public:
+		virtual void parse(char *filename)=0;
+};
+
+bool XMLFileParser::parsing=0;
+unsigned int XMLFileParser::pos=0;
+char XMLFileParser::buffer[XML_PARSER_BUF_LEN]={0};
+
+class ObjectFileParser : public XMLFileParser {
+	private:
+	/*
+		Contents of Object class:
+		
+		Sweep *head;
+		char *name;
+		Position *pos;
+		Sweep *last;	@@	Remember to add this
+		
+		@@	Remember to make this class a friend of Object class
+	*/
+		enum ElementTypes {
+			OBJECT, SWEEP, PATH, CURVELIST, CURVE, X, Y, Z, START, CTRL1,
+			CTRL2, END, POINT, FX, FY, FZ, T, ROTATION, TRANSLATION, UNKNOWN
+		};
+		static ElementTypes xpath[6];
+		static int xpathpos;
+		static Object *object;
+		
+		static ElementTypes elementType(const char *name)
+		{
+			switch(name[0]) {
+				case 'c':
+					if(!strcmp(name, "curvelist"))
+						return CURVELIST;
+					if(!strcmp(name, "curve"))
+						return CURVE;
+					if(!strcmp(name, "ctrl1"))
+						return CTRL1;
+					if(!strcmp(name, "ctrl2"))
+						return CTRL2;
+					break;
+				
+				case 'e':
+					if(!strcmp(name, "end"))
+						return END;
+					break;
+				
+				case 'f':
+					if(!strcmp(name, "fx"))
+						return FX;
+					if(!strcmp(name, "fy"))
+						return FY;
+					if(!strcmp(name, "fz"))
+						return FZ;
+					break;
+				
+				case 'o':
+					if(!strcmp(name, "object"))
+						return OBJECT;
+					break;
+				
+				case 'p':
+					if(!strcmp(name, "point"))
+						return POINT;
+					if(!strcmp(name, "path"))
+						return PATH;
+					break;
+				
+				case 'r':
+					if(!strcmp(name, "rotation"))
+						return ROTATION;
+					break;
+				
+				case 's':
+					if(!strcmp(name, "sweep"))
+						return SWEEP;
+					if(!strcmp(name, "start"))
+						return START;
+					break;
+				
+				case 't':
+					if(!strcmp(name, "translation"))
+						return TRANSLATION;
+					if(!strcmp(name, "t"))
+						return T;
+					break;
+				
+				case 'x':
+					if(!strcmp(name, "x"))
+						return X;
+					break;
+				
+				case 'y':
+					if(!strcmp(name, "y"))
+						return Y;
+					break;
+				
+				case 'z':
+					if(!strcmp(name, "z"))
+						return Z;
+					break;
+			}
+			
+			return UNKNOWN;
+		}
+		
+		static void XMLCALL startHandler(void *userData, const char *name, const char **attr)
+		{
+			ElementTypes etype=elementType(name);
+			parsing=1;
+			
+			switch(etype) {
+				case OBJECT:
+					if(!strcmp(attr[0], "name"))
+						object->name=strdup(attr[1]);
+					xpathpos=0;
+					
+					break;
+				case SWEEP:
+				{
+					Sweep *curr=new Sweep();
+					
+					//	@@	Remember to add setNext(Sweep*); for class Sweep
+					object->addSweep(curr);
+					
+					break;
+				}
+				case CURVE:
+				{
+					Curve *curr=NULL;
+					
+					for(int i=0; attr[i] && curr==NULL; i+=2)
+						if(!strcmp(attr[i], "type")) {
+							//	@@	Remember to add default constructors for derivatives of Curve
+							if(!strcmp(attr[i+1], "parametric")) {
+								Parametric *ptemp=new Parametric();
+								curr=ptemp;
+							} else if(!strcmp(attr[i+1], "bezier")) {
+								BazierCurve *btemp=new BazierCurve();
+								curr=btemp;
+							} else if(!strcmp(attr[i+1], "lagrange")) {
+								Lagranges *ltemp=new Lagranges();
+								curr=ltemp;
+							}
+							
+							//	@@	Remember to add setProperties(int, char*); for class Curve
+							if(curr!=NULL)
+								curr->setProperties(attr);
+						}
+					
+					if(xpath[xpathpos-1]==CURVELIST)
+						//	@@	Remember to add addCurve(Curve*); for class Sweep
+//						object->tail->sweep->addCurve(curr);
+						object->tail->sweep->Surface=curr;
+					else
+						//	@@	Remember to add setPath(Curve*); for class Sweep
+						object->tail->sweep->Path=curr;
+					
+					break;
+				}
+				case UNKNOWN:
+					break;
+			}
+			
+			xpath[xpathpos++]=etype;
+			pos=0;
+		}
+		
+		static void XMLCALL endHandler(void *userData, const XML_Char *name)
+		{
+			buffer[pos]='\0';
+			
+			switch(elementType(name)) {
+				//	@@	Remember to add setExtProperty(int, char*); for class Curve (virtual)
+				//	@@	Remember to add setExtProperty(int, char*); for class Parametric
+				case X:
+//					object->tail->getLast()->setExtProperty(0, buffer);
+					object->tail->sweep->Surface->setExtProperty(0, buffer);
+					break;
+				case Y:
+//					object->tail->getLast()->setExtProperty(1, buffer);
+					object->tail->sweep->Surface->setExtProperty(1, buffer);
+					break;
+				case Z:
+//					object->tail->getLast()->setExtProperty(2, buffer);
+					object->tail->sweep->Surface->setExtProperty(2, buffer);
+					break;
+				
+				//	@@	Remember to add setExtProperty(int, char*); for class Bezier
+				case START:
+					//	@@	Remember to add parseString(char*); for class XYZ
+//					object->tail->getLast()->setExtProperty(0, buffer);
+					object->tail->sweep->Surface->setExtProperty(0, buffer);
+					break;
+				case CTRL1:
+//					object->tail->getLast()->setExtProperty(1, buffer);
+					object->tail->sweep->Surface->setExtProperty(1, buffer);
+					break;
+				case CTRL2:
+//					object->tail->getLast()->setExtProperty(2, buffer);
+					object->tail->sweep->Surface->setExtProperty(2, buffer);
+					break;
+				case END:
+//					object->tail->getLast()->setExtProperty(3, buffer);
+					object->tail->sweep->Surface->setExtProperty(3, buffer);
+					break;
+				
+				//	@@	Remember to add setExtProperty(int, char*); for class Lagrange
+				case POINT:
+//					object->tail->getLast()->setExtProperty(0, buffer);
+					object->tail->sweep->Surface->setExtProperty(0, buffer);
+					break;
+				
+				case FX:
+					object->tail->sweep->setFunction(0, buffer);
+					break;
+				case FY:
+					object->tail->sweep->setFunction(1, buffer);
+					break;
+				case FZ:
+					object->tail->sweep->setFunction(2, buffer);
+					break;
+				case T:
+					object->tail->sweep->setParametricFunction(buffer);
+					break;
+				
+				//	If possible add these fields to the Scene class
+/*				case ROTATION:
+					object->tail->setRotation(buffer);
+					break;
+				case TRANSLATION:
+					object->tail->setTranslation(buffer);
+					break;*/
+				
+				case UNKNOWN:
+					break;
+			}
+			
+			xpathpos--;
+			pos=0;
+		}
+		
+		static void XMLCALL charHandler(void *userData, const XML_Char *s, int len)
+		{
+			int i;
+			char temp[len+1];
+			
+			memcpy(buffer+pos, s, len);
+			pos+=len;
+		}
+		
+	public:
+		ObjectFileParser(Object *obj)
+		{
+			object=obj;
+		}
+		
+		void parse(char *filename)
+		{
+			XML_Parser parser=XML_ParserCreate(NULL);
+			FILE *fin=fopen(filename, "r");
+			int len;
+			
+			XML_SetElementHandler(parser, ObjectFileParser::startHandler, ObjectFileParser::endHandler);
+			XML_SetCharacterDataHandler(parser, ObjectFileParser::charHandler);
+			
+			parsing=0;
+			xpathpos=0;
+			do {
+				len=fread(buffer, 1, XML_PARSER_BUF_LEN, fin);
+				if(len==XML_PARSER_BUF_LEN) {
+					if(XML_Parse(parser, buffer, len, 0)==XML_STATUS_ERROR && parsing) {
+						printf("ERROR: %s on line %d column %d\n", XML_ErrorString(XML_GetErrorCode(parser)), XML_GetCurrentLineNumber(parser), XML_GetCurrentColumnNumber(parser));
+						break;
+					}
+				} else
+					if(XML_Parse(parser, buffer, len, 1)==XML_STATUS_ERROR && parsing) {
+						printf("ERROR: %s on line %d column %d\n", XML_ErrorString(XML_GetErrorCode(parser)), XML_GetCurrentLineNumber(parser), XML_GetCurrentColumnNumber(parser));
+						break;
+					}
+			} while(len==XML_PARSER_BUF_LEN);
+			
+			fclose(fin);
+			XML_ParserFree(parser);
+		}
+};
+
+Object *ObjectFileParser::object=NULL;
+ObjectFileParser::ElementTypes ObjectFileParser::xpath[6]={ObjectFileParser::OBJECT};
+int ObjectFileParser::xpathpos=0;
+
+#endif
